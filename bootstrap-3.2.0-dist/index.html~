@@ -1,0 +1,278 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+	<title> medida de sonido </title>
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+	
+    </style>
+	<link href="css/bootstrap.min.css" rel="stylesheet">    
+	<link href="css/base1.css" rel="stylesheet">	
+	<link href="css/bootstrap.min.css" rel="stylesheet">    
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>	
+  </head>
+  <body>
+	<div class="class="container-fluid">
+		<button id="draw" value="Draw" class="col-md-4">Draw</button>
+		<button id="clear" value="Clear" class="col-md-4">Cancel</button>
+	</div>
+	
+    <canvas id="myCanvas" width="5000" height="3000"></canvas>
+	<div class="class="container-fluid">
+		<textarea id='value'>10</textarea>	
+	</div>
+    <script >
+	
+	$(document).ready(function(){
+	
+		$("button#draw").click(function()
+		{   
+			myGraph.drawLine(function(x) {
+        			return $('textarea#value').val() * x;
+      			}, 'red', 3);			
+  		});	
+	});
+
+      function Graph(config) {
+        // user defined properties
+        this.canvas = document.getElementById(config.canvasId);
+        this.minX = config.minX;
+        this.minY = config.minY;
+        this.maxX = config.maxX;
+        this.maxY = config.maxY;
+        this.unitsPerTick = config.unitsPerTick;
+
+        // constants
+        this.axisColor = '#aaa';
+        this.font = '8pt Calibri';
+        this.tickSize = 20;
+
+        // relationships
+        this.context = this.canvas.getContext('2d');
+        this.rangeX = this.maxX - this.minX;
+        this.rangeY = this.maxY - this.minY;
+        this.unitX = this.canvas.width / this.rangeX;
+        this.unitY = this.canvas.height / this.rangeY;
+        this.centerY = Math.round(Math.abs(this.minY / this.rangeY) * this.canvas.height);
+        this.centerX = Math.round(Math.abs(this.minX / this.rangeX) * this.canvas.width);
+        this.iteration = (this.maxX - this.minX) / 1000;
+        this.scaleX = this.canvas.width / this.rangeX;
+        this.scaleY = this.canvas.height / this.rangeY;
+
+        // draw x and y axis
+        //this.drawXAxis();
+        //this.drawYAxis();
+      }
+
+      Graph.prototype.drawXAxis = function() {
+        var context = this.context;
+        context.save();
+        context.beginPath();
+        context.moveTo(0, this.centerY);
+        context.lineTo(this.canvas.width, this.centerY);
+        context.strokeStyle = this.axisColor;
+        context.lineWidth = 2;
+        context.stroke();
+
+        // draw tick marks
+        var xPosIncrement = this.unitsPerTick * this.unitX;
+        var xPos, unit;
+        context.font = this.font;
+        context.textAlign = 'center';
+        context.textBaseline = 'top';
+
+        // draw left tick marks
+        xPos = this.centerX - xPosIncrement;
+        unit = -1 * this.unitsPerTick;
+        while(xPos > 0) {
+          context.moveTo(xPos, this.centerY - this.tickSize / 2);
+          context.lineTo(xPos, this.centerY + this.tickSize / 2);
+          context.stroke();
+          context.fillText(unit, xPos, this.centerY + this.tickSize / 2 + 3);
+          unit -= this.unitsPerTick;
+          xPos = Math.round(xPos - xPosIncrement);
+        }
+
+        // draw right tick marks
+        xPos = this.centerX + xPosIncrement;
+        unit = this.unitsPerTick;
+        while(xPos < this.canvas.width) {
+          context.moveTo(xPos, this.centerY - this.tickSize / 2);
+          context.lineTo(xPos, this.centerY + this.tickSize / 2);
+          context.stroke();
+          context.fillText(unit, xPos, this.centerY + this.tickSize / 2 + 3);
+          unit += this.unitsPerTick;
+          xPos = Math.round(xPos + xPosIncrement);
+        }
+        context.restore();
+      };
+
+      Graph.prototype.drawYAxis = function() {
+        var context = this.context;
+        context.save();
+        context.beginPath();
+        context.moveTo(this.centerX, 0);
+        context.lineTo(this.centerX, this.canvas.height);
+        context.strokeStyle = this.axisColor;
+        context.lineWidth = 2;
+        context.stroke();
+
+        // draw tick marks
+        var yPosIncrement = this.unitsPerTick * this.unitY;
+        var yPos, unit;
+        context.font = this.font;
+        context.textAlign = 'right';
+        context.textBaseline = 'middle';
+
+        // draw top tick marks
+        yPos = this.centerY - yPosIncrement;
+        unit = this.unitsPerTick;
+        while(yPos > 0) {
+          context.moveTo(this.centerX - this.tickSize / 2, yPos);
+          context.lineTo(this.centerX + this.tickSize / 2, yPos);
+          context.stroke();
+          context.fillText(unit, this.centerX - this.tickSize / 2 - 3, yPos);
+          unit += this.unitsPerTick;
+          yPos = Math.round(yPos - yPosIncrement);
+        }
+
+        // draw bottom tick marks
+        yPos = this.centerY + yPosIncrement;
+        unit = -1 * this.unitsPerTick;
+        while(yPos < this.canvas.height) {
+          context.moveTo(this.centerX - this.tickSize / 2, yPos);
+          context.lineTo(this.centerX + this.tickSize / 2, yPos);
+          context.stroke();
+          context.fillText(unit, this.centerX - this.tickSize / 2 - 3, yPos);
+          unit -= this.unitsPerTick;
+          yPos = Math.round(yPos + yPosIncrement);
+        }
+        context.restore();
+      };
+
+      Graph.prototype.drawEquation = function(equation, color, thickness) {
+        var context = this.context;
+        context.save();
+        context.save();
+        this.transformContext();
+
+        context.beginPath();
+	//alert(this.minX+" "+" "+equation(x));
+        context.moveTo(this.minX, equation(this.minX));
+
+        for(var x = this.minX + this.iteration; x <= this.maxX; x += this.iteration) {
+          context.lineTo(x, equation(x));
+        }
+
+        context.restore();
+        context.lineJoin = 'round';
+        context.lineWidth = thickness;
+        context.strokeStyle = color;
+        context.stroke();
+        context.restore();
+      };
+	
+	Graph.prototype.drawLine = function(equation, color, thickness) {
+        var context = this.context;
+        context.save();
+        context.save();
+        this.transformContext();
+
+        context.beginPath();
+ 	
+	var values = [11.7, 11.8, 25.3, 29.8, 30.4, 27.4, 29.9, 29.7, 32.5, 33.5, 34.7, 34.4, 37.3, 37.6, 39, 44.5, 48.1, 46.7];
+	//var frequency = [100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000];
+	var frequency = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170];
+	
+	var referencia =[33,36,39,42,45,48,51,52,53,54,55,56,56,56,56,56,56,56];
+	var zoom =8;
+	var zoom1=9;
+	var base = 500;
+	var refBase =50;
+	for( var i=0; i < values.length; i++)
+	{	
+		//alert(frequency[i]+" "+values[i]);
+		//alert(frequency[i+1]+" "+values[i+1])
+		context.moveTo(frequency[i]*2,base- (values[i]*zoom) );
+		context.lineTo(frequency[i+1]*2,base- (values[i+1]*zoom));
+		context.restore();
+        	context.lineJoin = 'round';
+        	context.lineWidth = thickness;
+        	context.strokeStyle = color;
+        	context.stroke();
+        	context.restore();
+		
+		//context.moveTo(value[i], frequency[i] );
+		//context.lineTo(values[i+1], frequency[i+1] );
+	} 
+
+	for( var i=0; i < values.length; i++)
+	{	
+		//alert(frequency[i]+" "+values[i]);
+		//alert(frequency[i+1]+" "+values[i+1])
+		context.moveTo(frequency[i]*2, base + refBase - (referencia[i]*zoom) );
+		context.lineTo(frequency[i+1]*2, base + refBase - (referencia[i+1]*zoom));
+		context.restore();
+        	context.lineJoin = 'round';
+        	context.lineWidth = thickness;
+        	context.strokeStyle = color;
+        	context.stroke();
+        	context.restore();
+		
+		//context.moveTo(value[i], frequency[i] );
+		//context.lineTo(values[i+1], frequency[i+1] );
+	} 
+        //for(var x = this.minX + this.iteration; x <= this.maxX; x += this.iteration) {
+        //  context.lineTo(x, equation(x));
+        //}
+
+        context.restore();
+        context.lineJoin = 'round';
+        context.lineWidth = thickness;
+        context.strokeStyle = color;
+        context.stroke();
+        context.restore();
+      };
+
+      Graph.prototype.transformContext = function() {
+        var context = this.context;
+
+        // move context to center of canvas
+        this.context.translate(this.centerX, this.centerY);
+
+        /*
+         * stretch grid to fit the canvas window, and
+         * invert the y scale so that that increments
+         * as you move upwards
+         */
+        context.scale(this.scaleX, -this.scaleY);
+      };
+      
+	var myGraph = new Graph({
+        canvasId: 'myCanvas',
+        minX: -50,
+        minY: -10,
+        maxX: 600,
+        maxY: 100,
+        unitsPerTick: 1
+      });
+
+      //myGraph.drawEquation(function(x) {
+      //  return 5 * Math.sin(x);
+      //}, 'green', 3);
+
+      //myGraph.drawEquation(function(x) {
+      //  return x * x;
+      //}, 'blue', 3);
+
+      //myGraph.drawEquation(function(x) {
+      //  return $('textarea#value').val() * x;
+      //}, 'red', 3);
+
+    </script>
+  </body>
+</html>
+      
